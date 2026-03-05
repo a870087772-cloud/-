@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你的性格底色是什么？</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            /* 动态渐变背景 */
+            background: linear-gradient(-45deg, #f3f4f6, #e5e7eb, #f9fafb, #ffffff);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            transition: box-shadow 0.8s ease;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            padding: 2rem;
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+
+        .option-btn {
+            width: 100%;
+            text-align: left;
+            padding: 1.25rem 1.5rem;
+            background: #ffffff;
+            border: 2px solid transparent;
+            border-radius: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            font-size: 1rem;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        }
+
+        .option-btn:hover {
+            border-color: #e5e7eb;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+            color: #111827;
+        }
+
+        .option-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .option-letter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: #f3f4f6;
+            color: #6b7280;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .option-btn:hover .option-letter {
+            background: #111827;
+            color: #ffffff;
+        }
+
+        .blob-glow {
+            position: absolute;
+            inset: -20px;
+            border-radius: 50%;
+            filter: blur(20px);
+            opacity: 0.4;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="text-gray-900 min-h-screen flex items-center justify-center overflow-hidden">
+    
+    <div id="app-container" class="glass-card w-full max-w-md mx-auto relative h-[650px] flex flex-col justify-center rounded-[2.5rem] overflow-hidden m-4">
+        
+        <div id="screen-start" class="screen active text-center flex flex-col items-center justify-center h-full">
+            <div class="mb-8 p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl shadow-inner border border-white">
+                <i data-lucide="palette" class="w-10 h-10 text-gray-800"></i>
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight mb-4 text-gray-900">性格底色测试</h1>
+            <p class="text-gray-500 mb-12 text-base leading-relaxed px-4">在纷繁的世界中，每个人都有一种独特的色彩。<br>回答几个简单的问题，发现属于你的本命色。</p>
+            <button id="btn-start" class="px-8 py-4 bg-gray-900 text-white rounded-2xl font-medium hover:bg-gray-800 transition-all duration-300 shadow-xl shadow-gray-900/20 hover:shadow-gray-900/40 transform hover:-translate-y-1 active:scale-95 flex items-center gap-3">
+                <span>开始探索</span>
+                <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div id="screen-quiz" class="screen hidden flex flex-col h-full pt-10">
+            <div class="w-full bg-gray-100 h-2 rounded-full mb-10 overflow-hidden shadow-inner">
+                <div id="progress-bar" class="bg-gradient-to-r from-gray-700 to-gray-900 h-full rounded-full transition-all duration-500 ease-out relative" style="width: 0%">
+                    <div class="absolute inset-0 bg-white/20 w-full h-full" style="mask-image: linear-gradient(to right, transparent, black);"></div>
+                </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+                <span id="question-number" class="text-sm font-bold text-gray-400 tracking-widest uppercase mb-3"></span>
+                <h2 id="question-text" class="text-2xl font-semibold mb-10 leading-relaxed text-gray-800"></h2>
+                <div id="options-container" class="space-y-4 flex-1"></div>
+            </div>
+        </div>
+
+        <div id="screen-result" class="screen hidden text-center flex flex-col items-center justify-center h-full">
+            <div class="relative mb-8">
+                <div id="blob-glow" class="blob-glow transition-all duration-1000"></div>
+                <div id="color-blob" class="w-36 h-36 rounded-full shadow-lg transition-all duration-1000 ease-out scale-0 opacity-0 relative flex items-center justify-center border-4 border-white">
+                    <div class="absolute inset-0 rounded-full animate-ping opacity-30 bg-inherit" style="animation-duration: 3s;"></div>
+                    <i data-lucide="sparkles" class="w-10 h-10 text-white opacity-80 z-10"></i>
+                </div>
+            </div>
+            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">你的性格主色调</h3>
+            <h1 id="result-title" class="text-4xl font-extrabold tracking-tight mb-6 drop-shadow-sm"></h1>
+            <p id="result-desc" class="text-gray-600 mb-12 text-base leading-loose max-w-sm px-4 bg-white/50 p-4 rounded-2xl"></p>
+            <button id="btn-restart" class="px-8 py-4 bg-white border-2 border-gray-100 text-gray-800 rounded-2xl font-medium hover:border-gray-300 hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 flex items-center gap-2">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                重新测试
+            </button>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // 将 data.js 的内容直接合并到这里
+        const questions =[
+            {
+                text: "周末终于有了一整天空闲，你会如何安排？",
+                options:[
+                    { text: "召集朋友们办一场热闹的聚会或探险", color: "red" },
+                    { text: "独自一人在家看书、喝茶或安静思考", color: "blue" },
+                    { text: "陪伴家人或和朋友找个安静咖啡馆聊天", color: "green" },
+                    { text: "尝试一项新的手工、去逛展或学习新技能", color: "yellow" }
+                ]
+            },
+            {
+                text: "在团队合作中，你通常扮演什么角色？",
+                options:[
+                    { text: "推动进度的领导者，直接解决问题", color: "red" },
+                    { text: "分析数据、提供逻辑策略的智囊", color: "blue" },
+                    { text: "协调冲突，确保大家和谐共处的润滑剂", color: "green" },
+                    { text: "提出天马行空的新点子，活跃气氛", color: "yellow" }
+                ]
+            },
+            {
+                text: "面对突发困难时，你的第一反应是？",
+                options:[
+                    { text: "立刻采取行动，迎难而上", color: "red" },
+                    { text: "冷静下来，寻找最理性的解决方案", color: "blue" },
+                    { text: "向信任的人倾诉或寻求帮助", color: "green" },
+                    { text: "换个角度思考，也许这是个机会", color: "yellow" }
+                ]
+            },
+            {
+                text: "你最喜欢的旅行方式是？",
+                options:[
+                    { text: "行程满满，打卡所有著名景点的充实之旅", color: "red" },
+                    { text: "做足攻略，有条不紊的深度文化体验", color: "blue" },
+                    { text: "没有固定计划，随心所欲的慢节奏放松", color: "green" },
+                    { text: "探索未知的小众目的地，充满惊喜的冒险", color: "yellow" }
+                ]
+            },
+            {
+                text: "如果你的生活是一部电影，会是什么类型？",
+                options:[
+                    { text: "高潮迭起的动作片或励志片", color: "red" },
+                    { text: "逻辑严密的悬疑片或科幻片", color: "blue" },
+                    { text: "温暖治愈的家庭伦理片或爱情片", color: "green" },
+                    { text: "脑洞大开的奇幻片或喜剧片", color: "yellow" }
+                ]
+            }
+        ];
+
+        const results = {
+            red: {
+                title: "炽热正红",
+                hex: "#EF4444",
+                lightHex: "rgba(239, 68, 68, 0.15)",
+                desc: "你充满热情与活力，是天生的行动派和领导者。面对目标果断直接，从不拖泥带水，你的光芒能够点燃周围人的激情。"
+            },
+            blue: {
+                title: "深邃静蓝",
+                hex: "#3B82F6",
+                lightHex: "rgba(59, 130, 246, 0.15)",
+                desc: "你理性、冷静、充满智慧。在纷杂的世界中总能保持清醒。你像深海一样内敛，让人感到踏实和绝对值得信赖。"
+            },
+            green: {
+                title: "治愈生绿",
+                hex: "#10B981",
+                lightHex: "rgba(16, 185, 129, 0.15)",
+                desc: "你温柔、包容，极具同理心。向往和平，善于倾听和协调。你像春天的一抹新绿，总能给身边人带来舒适与治愈。"
+            },
+            yellow: {
+                title: "灵动明黄",
+                hex: "#F59E0B",
+                lightHex: "rgba(245, 158, 11, 0.15)",
+                desc: "你乐观、开朗，充满创造力。脑海里总有无数新奇的点子。你就像清晨的第一缕阳光，走到哪里都能带来欢笑和希望。"
+            }
+        };
+
+        // 核心逻辑
+        let currentQuestionIndex = 0;
+        let scores = { red: 0, blue: 0, green: 0, yellow: 0 };
+        const letters = ['A', 'B', 'C', 'D'];
+
+        const dom = {
+            appContainer: document.getElementById('app-container'),
+            screenStart: document.getElementById('screen-start'),
+            screenQuiz: document.getElementById('screen-quiz'),
+            screenResult: document.getElementById('screen-result'),
+            btnStart: document.getElementById('btn-start'),
+            btnRestart: document.getElementById('btn-restart'),
+            questionNumber: document.getElementById('question-number'),
+            questionText: document.getElementById('question-text'),
+            optionsContainer: document.getElementById('options-container'),
+            progressBar: document.getElementById('progress-bar'),
+            resultTitle: document.getElementById('result-title'),
+            resultDesc: document.getElementById('result-desc'),
+            colorBlob: document.getElementById('color-blob'),
+            blobGlow: document.getElementById('blob-glow')
+        };
+
+        function init() {
+            lucide.createIcons();
+            dom.btnStart.addEventListener('click', startQuiz);
+            dom.btnRestart.addEventListener('click', restartQuiz);
+        }
+
+        function switchScreen(from, to, onComplete) {
+            gsap.to(from, {
+                opacity: 0,
+                y: -30,
+                duration: 0.5,
+                ease: "power3.inOut",
+                onComplete: () => {
+                    from.classList.remove('active');
+                    from.classList.add('hidden');
+                    to.classList.remove('hidden');
+                    to.classList.add('active');
+                    gsap.fromTo(to, 
+                        { opacity: 0, y: 30 }, 
+                        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", onComplete }
+                    );
+                }
+            });
+        }
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            scores = { red: 0, blue: 0, green: 0, yellow: 0 };
+            dom.appContainer.style.boxShadow = "0 25px 50px -12px rgba(0, 0, 0, 0.08)";
+            renderQuestion();
+            switchScreen(dom.screenStart, dom.screenQuiz);
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQuestionIndex];
+            dom.questionNumber.textContent = `Question ${currentQuestionIndex + 1} / ${questions.length}`;
+            dom.questionText.textContent = q.text;
+            
+            const progress = ((currentQuestionIndex) / questions.length) * 100;
+            dom.progressBar.style.width = `${progress}%`;
+
+            dom.optionsContainer.innerHTML = '';
+            
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerHTML = `
+                    <span class="option-letter">${letters[index]}</span>
+                    <span>${opt.text}</span>
+                `;
+                
+                // 增加一点交错出现的弹性动画
+                gsap.fromTo(btn, 
+                    { opacity: 0, x: 20 }, 
+                    { opacity: 1, x: 0, duration: 0.4, delay: index * 0.1, ease: "back.out(1.2)" }
+                );
+
+                btn.addEventListener('click', () => handleAnswer(opt.color));
+                dom.optionsContainer.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(color) {
+            scores[color]++;
+            
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                gsap.to(dom.optionsContainer.children, {
+                    opacity: 0,
+                    x: -20,
+                    duration: 0.2,
+                    stagger: 0.05,
+                    ease: "power2.in",
+                    onComplete: renderQuestion
+                });
+            } else {
+                dom.progressBar.style.width = '100%';
+                setTimeout(() => showResult(), 400);
+            }
+        }
+
+        function showResult() {
+            let dominantColor = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+            const resultData = results[dominantColor];
+
+            dom.resultTitle.textContent = resultData.title;
+            dom.resultTitle.style.color = resultData.hex;
+            dom.resultDesc.textContent = resultData.desc;
+            
+            // 结果页色彩氛围渲染
+            dom.colorBlob.style.backgroundColor = resultData.hex;
+            dom.blobGlow.style.backgroundColor = resultData.hex;
+            dom.appContainer.style.boxShadow = `0 25px 50px -12px ${resultData.lightHex}, 0 0 0 1px rgba(255,255,255,0.8)`;
+
+            switchScreen(dom.screenQuiz, dom.screenResult, () => {
+                lucide.createIcons(); // 重新渲染结果页的图标
+                gsap.to(dom.colorBlob, {
+                    scale: 1,
+                    opacity: 1,
+                    duration: 1,
+                    ease: "elastic.out(1, 0.4)"
+                });
+            });
+        }
+
+        function restartQuiz() {
+            gsap.to(dom.colorBlob, { scale: 0, opacity: 0, duration: 0.3 });
+            switchScreen(dom.screenResult, dom.screenStart);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
